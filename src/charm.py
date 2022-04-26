@@ -14,6 +14,8 @@ develop a new k8s charm using the Operator Framework:
 
 import logging
 
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -22,83 +24,70 @@ from ops.model import ActiveStatus
 logger = logging.getLogger(__name__)
 
 
-class OperatorTemplateCharm(CharmBase):
-    """Charm the service."""
+class NodeExporterCharm(CharmBase):
+    """NodeExporterCharm."""
 
     _stored = StoredState()
+    _name = "kube-metrics"
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.httpbin_pebble_ready, self._on_httpbin_pebble_ready)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.fortune_action, self._on_fortune_action)
+        self.framework.observe(self.on.node_exporter_pebble_ready, self._on_exporter_pebble_ready)
+        self.framework.observe(self.on.kube_state_metrics_pebble_ready, self._on_kube_state_pebble_ready)
+
         self._stored.set_default(things=[])
+        self._scraping = MetricsEndpointProvider(
+            self,
+            jobs=[
+                { "job_name": "node_exporter", "static_configs": [{"targets": ["*:9100"]}]},
+                { "job_name": "kube-state-metrics", "static_configs": [{"targets": ["*:8080", "*:8081"]}]}
+            ]
+        )
 
-    def _on_httpbin_pebble_ready(self, event):
-        """Define and start a workload using the Pebble API.
+        self._dashboards = GrafanaDashboardProvider(
+            self, 
+            relation_name="grafana-dashboard"
+        )
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        You'll need to specify the right entrypoint and environment
-        configuration for your specific workload. Tip: you can see the
-        standard entrypoint of an existing container using docker inspect
 
-        Learn more about Pebble layers at https://github.com/canonical/pebble
-        """
-        # Get a reference the container attribute on the PebbleReadyEvent
+    def _on_exporter_pebble_ready(self, event):
         container = event.workload
-        # Define an initial Pebble layer configuration
         pebble_layer = {
-            "summary": "httpbin layer",
-            "description": "pebble config layer for httpbin",
+            "summary": "node-exporter layer",
+            "description": "pebble config layer for node-exporter",
             "services": {
-                "httpbin": {
+                "exporter": {
                     "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
+                    "summary": "exporter",
+                    "command": "node_exporter",
                     "startup": "enabled",
-                    "environment": {"thing": self.model.config["thing"]},
                 }
             },
         }
-        # Add initial Pebble config layer using the Pebble API
-        container.add_layer("httpbin", pebble_layer, combine=True)
-        # Autostart any services that were defined with startup: enabled
+        
+        container.add_layer(container.name, pebble_layer, combine=True)
         container.autostart()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
+
         self.unit.status = ActiveStatus()
 
-    def _on_config_changed(self, _):
-        """Just an example to show how to deal with changed configuration.
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle config, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the config.py file.
-
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        current = self.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
-
-    def _on_fortune_action(self, event):
-        """Just an example to show how to receive actions.
-
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle actions, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the actions.py file.
-
-        Learn more about actions at https://juju.is/docs/sdk/actions
-        """
-        fail = event.params["fail"]
-        if fail:
-            event.fail(fail)
-        else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
-
+    def _on_kube_state_pebble_ready(self, event):
+        container = event.workload
+        pebble_layer = {
+            "summary": "kube-state-metrics layer",
+            "description": "pebble config layer for kube-state-metrics",
+            "services": {
+                "exporter": {
+                    "override": "replace",
+                    "summary": "exporter",
+                    "command": "/kube-state-metrics --port=8080 --telemetry-port=8081 ",
+                    "startup": "enabled",
+                }
+            },
+        }
+        
+        container.add_layer(container.name, pebble_layer, combine=True)
+        container.autostart()
 
 if __name__ == "__main__":
-    main(OperatorTemplateCharm)
+    main(NodeExporterCharm)

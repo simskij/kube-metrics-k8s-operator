@@ -3,21 +3,30 @@
 
 # For a complete list of supported options, see:
 # https://juju.is/docs/sdk/metadata-reference
-name: template-operator
+name: kube-metrics-k8s
 description: |
-  TEMPLATE-TODO: fill out the charm's description
+  Enables operators to easily fetch metrics for their Kubernetes cluster nodes.
 summary: |
-  TEMPLATE-TODO: fill out the charm's summary
+  Exposes Kubernetes metrics
 
-# TEMPLATE-TODO: replace with containers for your workload (delete for non-k8s)
 containers:
-  httpbin:
-    resource: httpbin-image
+  node-exporter:
+    resource: node-exporter-image
+  kube-state-metrics:
+    resource: kube-state-metrics-image
 
-# TEMPLATE-TODO: each container defined above must specify an oci-image resource
 resources:
-  httpbin-image:
+  node-exporter-image:
     type: oci-image
-    description: OCI image for httpbin (kennethreitz/httpbin)
-    # Included for simplicity in integration tests
-    upstream-source: kennethreitz/httpbin
+    description: OCI image for node-exporter (prom/node-exporter)
+    upstream-source: prom/node-exporter:latest
+  kube-state-metrics-image:
+    type: oci-image
+    description: OCI image for kube-state-metrics (k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0)
+    upstream-source: k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0
+
+provides:
+  metrics-endpoint:
+    interface: prometheus_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard

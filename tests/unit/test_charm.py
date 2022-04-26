@@ -9,12 +9,12 @@ from unittest.mock import Mock
 from ops.model import ActiveStatus
 from ops.testing import Harness
 
-from charm import OperatorTemplateCharm
+from charm import NodeExporterCharm
 
 
 class TestCharm(unittest.TestCase):
     def setUp(self):
-        self.harness = Harness(OperatorTemplateCharm)
+        self.harness = Harness(NodeExporterCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
