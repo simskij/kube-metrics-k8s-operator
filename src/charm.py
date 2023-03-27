@@ -34,6 +34,7 @@ class NodeExporterCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.node_exporter_pebble_ready, self._on_exporter_pebble_ready)
         self.framework.observe(self.on.kube_state_metrics_pebble_ready, self._on_kube_state_pebble_ready)
+        self.framework.observe(self.on.metrics_server_pebble_ready, self._on_metrics_server_pebble_ready)
 
         self._stored.set_default(things=[])
         self._scraping = MetricsEndpointProvider(
@@ -45,10 +46,9 @@ class NodeExporterCharm(CharmBase):
         )
 
         self._dashboards = GrafanaDashboardProvider(
-            self, 
+            self,
             relation_name="grafana-dashboard"
         )
-
 
     def _on_exporter_pebble_ready(self, event):
         container = event.workload
@@ -64,12 +64,11 @@ class NodeExporterCharm(CharmBase):
                 }
             },
         }
-        
+
         container.add_layer(container.name, pebble_layer, combine=True)
         container.autostart()
 
         self.unit.status = ActiveStatus()
-
 
     def _on_kube_state_pebble_ready(self, event):
         container = event.workload
@@ -85,9 +84,28 @@ class NodeExporterCharm(CharmBase):
                 }
             },
         }
-        
+
         container.add_layer(container.name, pebble_layer, combine=True)
         container.autostart()
+
+    def _on_metrics_server_pebble_ready(self, event):
+        container = event.workload
+        pebble_layer = {
+            "summary": "metrics-server layer",
+            "description": "pebble config layer for metrics-server",
+            "services": {
+                "exporter": {
+                    "override": "replace",
+                    "summary": "exporter",
+                    "command": "/metrics-server",
+                    "startup": "enabled",
+                }
+            },
+        }
+
+        container.add_layer(container.name, pebble_layer, combine=True)
+        container.autostart()
+
 
 if __name__ == "__main__":
     main(NodeExporterCharm)
