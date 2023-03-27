@@ -2,12 +2,19 @@
 
 ## Description
 
-The Kube Metrics k8s operator is a charm that combines the Prometheus [node_exporter]()
-and the [kube_state_metrics]() into a single charm. It allows for easy, turn-key monitoring 
-using the charms of the [Canonical Observability Stack]().
+The Kube Metrics k8s operator is a charm that combines:
+
+- [node_exporter](https://github.com/prometheus/node_exporter)
+- [kube_state_metrics](https://github.com/kubernetes/kube-state-metrics)
+- [metrics-server](https://github.com/kubernetes-sigs/metrics-server)
+
+into a single charm.
+It allows for easy, turn-key monitoring using the charms of the
+[Canonical Observability Stack](https://github.com/canonical/cos-lite-bundle/).
+
 ## Usage
 
-To deploy this charm using Juju 2.9.0 or later, switch to a model running 
+To deploy this charm using Juju 2.9.0 or later, switch to a model running
 on Kubernetes and run:
 
 ```shell
@@ -17,14 +24,16 @@ $ juju deploy \
     --channel edge \
     --trust
 ```
+
 ## Relations
 
 The kube-metrics charm offers two relations, `metrics-endpoint` and `grafana-dashboard`.
 
-`metrics-endpoint` implements the provider-side of the `prometheus_scrape` interface, allowing you to relate it to a `prometheus-k8s` charm for automated scraping. 
+`metrics-endpoint` implements the provider-side of the `prometheus_scrape` interface, allowing you to relate it to a `prometheus-k8s` charm for automated scraping.
 
 `grafana-dashboard` implements the provider-side of the `grafana_dashboard` interface, allowing you to relate
-it to a `grafana-k8s` charm for automated dashboard provisioning. 
+it to a `grafana-k8s` charm for automated dashboard provisioning.
+
 ## OCI Images
 
 This charm uses two OCI images, one for `kube-state-metrics` and one for `node_exporter`. Both images are listed in [metadata.yaml](metadata.yaml).
