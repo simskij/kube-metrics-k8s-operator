@@ -14,6 +14,8 @@ containers:
     resource: node-exporter-image
   kube-state-metrics:
     resource: kube-state-metrics-image
+  metrics-server:
+    resource: metrics-server-image
 
 resources:
   node-exporter-image:
@@ -24,6 +26,10 @@ resources:
     type: oci-image
     description: OCI image for kube-state-metrics (k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0)
     upstream-source: k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0
+  metrics-server-image:
+    type: oci-image
+    description: OCI image for metrics-server
+    upstream-source: registry.k8s.io/metrics-server/metrics-server:v0.6.0
 
 provides:
   metrics-endpoint:
